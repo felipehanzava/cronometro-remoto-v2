@@ -43,7 +43,6 @@
             const s = String(abs % 60).padStart(2, '0');
             return (neg ? '-' : '') + `${m}:${s}`;
         }
-
         socket.onmessage = (event) => {
             const data = JSON.parse(event.data);
 
