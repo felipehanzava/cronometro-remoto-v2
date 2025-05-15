@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Controle do Cronômetro</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      margin: 0;
+      background-color: #f2f2f2;
+    }
+    header {
+      background-color: #007bff;
+      color: white;
+      padding: 1rem;
+      font-size: 1.5rem;
+      text-align: center;
+    }
+    main {
+      padding: 1rem;
+      max-width: 600px;
+      margin: auto;
+    }
+    input, button {
+      font-size: 1rem;
+      padding: 0.5rem;
+      margin: 0.25rem;
+    }
+    button {
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    .fila {
+      margin-top: 2rem;
+      background: white;
+      border-radius: 6px;
+      padding: 1rem;
+    }
+    .item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 0.5rem;
+      padding: 0.5rem;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+    .item.ativo {
+      background-color: #d0ebff;
+      font-weight: bold;
+    }
+    .controle-botoes {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      margin: 1rem 0;
+    }
+    .atual {
+      background-color: #fff8dc;
+      padding: 1rem;
+      border-radius: 6px;
+      margin-top: 1rem;
+      text-align: center;
+      font-size: 1.2rem;
+    }
+  </style>
+</head>
+<body>
+  <header>Controle do Cronômetro</header>
+  <main>
+    <div>
+      <input id="tema" placeholder="Tema do discurso" />
+      <input id="minutos" type="number" placeholder="Min" style="width: 60px;" />
+      <input id="segundos" type="number" placeholder="Seg" style="width: 60px;" value="0" min="0" max="59" />
+      <button onclick="adicionar()">Adicionar</button>
+    </div>
+
+    <div class="controle-botoes">
+      <button onclick="enviar('start')">Iniciar</button>
+      <button onclick="enviar('pause')">Pausar</button>
+      <button onclick="enviar('reset')">Resetar</button>
+      <button onclick="enviar('next')">Próximo</button>
+    </div>
+
+    <div id="atual" class="atual" style="display: none;"></div>
+
+    <div class="fila" id="fila"></div>
+  </main>
+
+  <script>
+    const socket = new WebSocket(`ws://${location.host}`);
+    let fila = [];
+    let ativoIndex = null;
+
+    function adicionar() {
+      const tema = document.getElementById('tema').value.trim();
+      const min = parseInt(document.getElementById('minutos').value || '0', 10);
+      const seg = parseInt(document.getElementById('segundos').value || '0', 10);
+      const tempo = min * 60 + seg;
+      if (!tema || tempo <= 0) return;
+
+      const item = { tema, tempo };
+      socket.send(JSON.stringify(item));
+      document.getElementById('tema').value = '';
+      document.getElementById('minutos').value = '';
+      document.getElementById('segundos').value = '';
+    }
+
+    function enviar(msg) {
+      socket.send(msg);
+    }
+
+    function mover(i, direcao) {
+      if ((direcao === -1 && i === 0) || (direcao === 1 && i === fila.length - 1)) return;
+      const novoIndex = i + direcao;
+      [fila[i], fila[novoIndex]] = [fila[novoIndex], fila[i]];
+      socket.send(JSON.stringify({ tipo: 'fila', fila }));
+      atualizarFila();
+    }
+
+    function remover(i) {
+      fila.splice(i, 1);
+      if (ativoIndex !== null && i < ativoIndex) {
+        ativoIndex -= 1;
+      }
+      if (ativoIndex >= fila.length) {
+        ativoIndex = null;
+      }
+      socket.send(JSON.stringify({ tipo: 'fila', fila }));
+      atualizarFila();
+    }
+
+    function atualizarFila() {
+      const lista = document.getElementById('fila');
+      lista.innerHTML = '';
+      fila.forEach((item, i) => {
+        const div = document.createElement('div');
+        div.className = 'item';
+        if (i === ativoIndex) div.classList.add('ativo');
+        div.innerHTML = `
+          <span>${item.tema} (${Math.floor(item.tempo/60)}m ${item.tempo%60}s)</span>
+          <span>
+            <button onclick="mover(${i}, -1)">↑</button>
+            <button onclick="mover(${i}, 1)">↓</button>
+            <button onclick="remover(${i})">✕</button>
+          </span>
+        `;
+        lista.appendChild(div);
+      });
+
+      const atual = document.getElementById('atual');
+      if (ativoIndex !== null && fila[ativoIndex]) {
+        atual.style.display = 'block';
+        atual.innerText = `Em execução: ${fila[ativoIndex].tema}`;
+      } else {
+        atual.style.display = 'none';
+      }
+    }
+
+    socket.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+
+      if (data.ativoIndex !== undefined) {
+        ativoIndex = data.ativoIndex;
+        atualizarFila();
+      }
+
+      if (data.tipo === 'fila' && Array.isArray(data.fila)) {
+        fila = data.fila;
+        atualizarFila();
+      }
+    };
+  </script>
+</body>
+</html>

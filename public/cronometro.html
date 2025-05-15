@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Cronômetro</title>
+    <style>
+        body {
+            background-color: white;
+            color: black;
+            font-family: sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+        }
+        #tema {
+            font-size: 3rem;
+            margin-top: 2rem;
+        }
+        #tempo {
+            font-size: 14rem;        
+            font-weight: 700;         
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            user-select: none;       
+        }
+    </style>
+</head>
+<body>
+    <div id="tema"></div>
+    <div id="tempo">00:00</div>
+
+    <script>
+        const temaDiv = document.getElementById('tema');
+        const tempoDiv = document.getElementById('tempo');
+        let fila = [];
+        let ativoIndex = null;
+
+        const socket = new WebSocket(`ws://${location.host}`);
+
+        function formatar(segundos) {
+            const neg = segundos < 0;
+            const abs = Math.abs(segundos);
+            const m = String(Math.floor(abs / 60)).padStart(2, '0');
+            const s = String(abs % 60).padStart(2, '0');
+            return (neg ? '-' : '') + `${m}:${s}`;
+        }
+
+        socket.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+
+            if (data.tipo === 'tempo') {
+                tempoDiv.textContent = formatar(data.tempo);
+                if (data.tempo < 0) {
+                    tempoDiv.style.color = 'red';
+                } else {
+                    tempoDiv.style.color = 'black';
+                }
+            }
+
+            if (data.ativoIndex !== undefined) {
+                ativoIndex = data.ativoIndex;
+                if (fila[ativoIndex]) {
+                    temaDiv.textContent = fila[ativoIndex].tema;
+                }
+            }
+
+            if (data.tipo === 'fila') {
+                fila = data.fila;
+                if (fila[ativoIndex]) {
+                    temaDiv.textContent = fila[ativoIndex].tema;
+                }
+            }
+        };
+    </script>
+</body>
+</html>
