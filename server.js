@@ -108,8 +108,7 @@ wss.on('connection', ws => {
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-  console.log(`Servidor rodando na porta ${PORT}`);
+server.listen(port, () => {
+  console.log(`Servidor rodando na porta ${port}`);
 });
 
