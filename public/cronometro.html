@@ -34,7 +34,7 @@
         let fila = [];
         let ativoIndex = null;
 
-        const socket = new WebSocket(`ws://${location.host}`);
+        const socket = new WebSocket(`wss://${location.host}`);
 
         function formatar(segundos) {
             const neg = segundos < 0;
