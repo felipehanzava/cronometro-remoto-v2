@@ -2,12 +2,13 @@ const express = require('express');
 const http = require('http');
 const WebSocket = require('ws');
 const path = require('path');
+const { salvarLista, carregarLista } = require('./database');
 
 const app = express();
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 
-let fila = [];
+let fila = carregarLista();
 let ativoIndex = null;
 let tempoRestante = 0;
 let timer = null;
@@ -77,12 +78,14 @@ wss.on('connection', ws => {
             if (msg.tema && msg.tempo) {
                 fila.push(msg);
                 if (ativoIndex === null) ativoIndex = 0;
+                salvarLista(fila); 
                 broadcast({ tipo: 'fila', fila });
                 broadcast({ ativoIndex });
             }
 
             if (msg.tipo === 'fila' && Array.isArray(msg.fila)) {
                 fila = msg.fila;
+                salvarLista(fila); 
                 broadcast({ tipo: 'fila', fila });
             }
         } catch (e) {
