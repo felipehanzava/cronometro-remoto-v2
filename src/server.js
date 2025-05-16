@@ -8,7 +8,8 @@ const { criarTabela, obterDiscursosPorDia, salvarListaDiscursos, adicionarDiscur
 
 const app = express();
 const server = http.createServer(app);
-const wss = new WebSocket.Server({ server });
+const { WebSocketServer } = require('ws');
+const wss = new WebSocketServer({ server });
 
 // Configuração do PostgreSQL (adicione isso se não estiver no database.js)
 const pool = new Pool({
@@ -39,6 +40,7 @@ let timer = null; // Mantemos o timer separado para evitar referência circular
 // WebSocket para atualizações em tempo real
 wss.on('connection', (ws) => {
   // Envia o estado atual imediatamente ao conectar
+   console.log('Nova conexão WebSocket recebida')
   ws.send(JSON.stringify({
     tipo: 'estado',
     data: {

@@ -15,7 +15,12 @@ document.addEventListener('DOMContentLoaded', () => {
   let diaAtual = 'sabado';
 
   // Conectar WebSocket para atualizações em tempo real
-  const ws = new WebSocket(`ws://${window.location.host}`);
+  const protocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
+  const wsUrl = window.location.hostname === 'localhost' 
+    ? 'ws://localhost:10000' 
+    : `wss://cronometro-remoto-v2.onrender.com`;
+
+  const ws = new WebSocket(wsUrl);
 
   ws.onmessage = (event) => {
     const data = JSON.parse(event.data);

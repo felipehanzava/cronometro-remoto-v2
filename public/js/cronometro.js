@@ -10,7 +10,11 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   // Conectar WebSocket
-  const ws = new WebSocket(`ws://${window.location.host}`);
+  const wsUrl = window.location.hostname === 'localhost' 
+    ? 'ws://localhost:10000' 
+    : `wss://cronometro-remoto-v2.onrender.com`;
+
+  const ws = new WebSocket(wsUrl);
 
   ws.onopen = () => {
     console.log('Conectado ao servidor WebSocket');

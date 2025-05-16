@@ -8,23 +8,25 @@ services:
     envVars:
       - key: DB_USER
         fromDatabase:
-          name: seu-banco
+          name: dbcronometro  # Nome do banco criado no Render
           property: user
       - key: DB_HOST
         fromDatabase:
-          name: seu-banco
+          name: dbcronometro
           property: host
       - key: DB_NAME
         fromDatabase:
-          name: seu-banco
+          name: dbcronometro
           property: database
       - key: DB_PASSWORD
         fromDatabase:
-          name: seu-banco
+          name: dbcronometro
           property: password
       - key: DB_PORT
         value: 5432
       - key: DB_SSL
-        value: "true"
+        value: "true"  # Render exige SSL
+      - key: PORT
+        value: "10000"  # String é mais seguro para YAML
       - key: NODE_ENV
         value: production
