@@ -13,6 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   let discursos = [];
   let diaAtual = 'sabado';
+  let estadoCronometro = {};
 
   // Conectar WebSocket para atualizações em tempo real
   const protocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
@@ -23,11 +24,16 @@ document.addEventListener('DOMContentLoaded', () => {
   const ws = new WebSocket(wsUrl);
 
   ws.onmessage = (event) => {
-    const data = JSON.parse(event.data);
-    if (data.tipo === 'estado') {
-      atualizarDiscursoAtual(data.data);
-    }
-  };
+  const data = JSON.parse(event.data);
+  if (data.tipo === 'estado') {
+    estadoCronometro = data.data;
+    atualizarDiscursoAtual(data.data);
+    
+    // Força a atualização dos botões
+    btnIniciar.disabled = !data.data.discursoAtual || data.data.ativo;
+    btnParar.disabled = !data.data.discursoAtual || !data.data.ativo;
+  }
+}
 
   async function carregarDiscursos(dia) {
     try {
@@ -202,7 +208,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const minutos = Math.floor(Math.abs(estado.tempoRestante) / 60);
       const segundos = Math.abs(estado.tempoRestante) % 60;
       const sinal = estado.tempoRestante < 0 ? '-' : '';
-    
+  
       discursoAtualEl.innerHTML = `
         <strong>Discurso Atual:</strong> ${estado.discursoAtual.tema}
         <br>
@@ -214,12 +220,12 @@ document.addEventListener('DOMContentLoaded', () => {
       discursoAtualEl.innerHTML = '<strong>Discurso Atual:</strong> Nenhum';
     }
 
-    // Lógica de ativação dos botões
+    // Lógica CORRIGIDA dos botões:
     btnIniciar.disabled = !hasActiveDiscourse || estado.ativo;
     btnParar.disabled = !hasActiveDiscourse || !estado.ativo;
+    btnResetar.disabled = !hasActiveDiscourse;
     btnProximo.disabled = !hasActiveDiscourse;
-
-}
+  }
 
   async function incluirDiscurso() {
     const tema = novoTemaInput.value.trim();
@@ -256,6 +262,26 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  async function resetarCronometro() {
+  try {
+    const response = await fetch('/api/cronometro/resetar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ dia: diaAtual })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Falha ao resetar');
+    }
+    
+    console.log('Cronômetro resetado com sucesso');
+  } catch (err) {
+    console.error('Erro ao resetar cronômetro:', err);
+    alert('Erro ao resetar cronômetro: ' + err.message);
+  }
+  }
+
   // Event Listeners
   btnCarregar.addEventListener('click', () => carregarDiscursos(diaSelect.value));
   btnIniciar.addEventListener('click', () => fetch('/api/cronometro/iniciar', { method: 'POST' }));
@@ -266,6 +292,7 @@ document.addEventListener('DOMContentLoaded', () => {
     body: JSON.stringify({ dia: diaAtual })
   }));
   btnIncluir.addEventListener('click', incluirDiscurso);
+  btnResetar.addEventListener('click', resetarCronometro);
 
   // Inicialização
   carregarDiscursos(diaAtual);

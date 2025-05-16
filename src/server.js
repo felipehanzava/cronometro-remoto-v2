@@ -54,6 +54,11 @@ wss.on('connection', (ws) => {
   ws.on('error', (err) => {
     console.error('Erro no WebSocket:', err);
   });
+
+  // Adicione este handler para conexões fechadas
+  ws.on('close', () => {
+    console.log('Conexão WebSocket fechada');
+  });
 });
 
 function broadcastEstado() {
@@ -78,8 +83,12 @@ function broadcastEstado() {
   });
 }
 
+
 function iniciarContagemRegressiva() {
-  if (timer) clearInterval(timer);
+ if (timer) {
+    clearInterval(timer);
+    timer = null;
+  }
   
   timer = setInterval(() => {
     estadoCronometro.tempoRestante--;
@@ -88,6 +97,7 @@ function iniciarContagemRegressiva() {
     // Opcional: parar após um limite muito negativo
     if (estadoCronometro.tempoRestante < -3600) {
       clearInterval(timer);
+      timer = null;
     }
   }, 1000);
 }
@@ -180,9 +190,43 @@ app.post('/api/cronometro/iniciar', (req, res) => {
 });
 
 app.post('/api/cronometro/parar', (req, res) => {
-  estadoCronometro.ativo = false;
-  broadcastEstado();
-  res.json({ success: true });
+   try {
+    if (timer) {
+      clearInterval(timer);
+      timer = null;
+    }
+    
+    estadoCronometro.ativo = false;
+    broadcastEstado();
+    
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Erro ao parar cronômetro:', err);
+    res.status(500).json({ error: 'Erro ao parar cronômetro' });
+  }
+});
+
+app.post('/api/cronometro/resetar', (req, res) => {
+   try {
+    // Parar o timer se estiver ativo
+    if (timer) {
+      clearInterval(timer);
+      timer = null;
+    }
+
+    // Resetar o tempo para o valor original do discurso atual
+    if (estadoCronometro.discursoAtual) {
+      estadoCronometro.tempoRestante = estadoCronometro.discursoAtual.tempo * 60;
+      estadoCronometro.ativo = false;
+      broadcastEstado();
+      res.json({ success: true });
+    } else {
+      res.status(400).json({ error: 'Nenhum discurso ativo para resetar' });
+    }
+  } catch (err) {
+    console.error('Erro ao resetar cronômetro:', err);
+    res.status(500).json({ error: 'Erro ao resetar cronômetro' });
+  }
 });
 
 app.post('/api/cronometro/proximo', async (req, res) => {
@@ -202,7 +246,7 @@ app.post('/api/cronometro/proximo', async (req, res) => {
     }
     
     estadoCronometro.dia = dia;
-    estadoCronometro.ativo = true;
+    estadoCronometro.ativo = false; // 👈 Garante que começa PAUSADO
     broadcastEstado();
     res.json({ success: true });
   } catch (err) {
