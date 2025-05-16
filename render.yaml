@@ -1,0 +1,30 @@
+services:
+  - type: web
+    name: controle-discursos
+    runtime: node
+    buildCommand: npm install
+    startCommand: npm start
+    env: node
+    envVars:
+      - key: DB_USER
+        fromDatabase:
+          name: seu-banco
+          property: user
+      - key: DB_HOST
+        fromDatabase:
+          name: seu-banco
+          property: host
+      - key: DB_NAME
+        fromDatabase:
+          name: seu-banco
+          property: database
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: seu-banco
+          property: password
+      - key: DB_PORT
+        value: 5432
+      - key: DB_SSL
+        value: "true"
+      - key: NODE_ENV
+        value: production
