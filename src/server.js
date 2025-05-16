@@ -246,7 +246,7 @@ app.post('/api/cronometro/proximo', async (req, res) => {
     }
     
     estadoCronometro.dia = dia;
-    estadoCronometro.ativo = false; // 👈 Garante que começa PAUSADO
+    estadoCronometro.ativo = true; // 👈 Garante que começa PAUSADO
     broadcastEstado();
     res.json({ success: true });
   } catch (err) {
